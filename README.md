@@ -1,4 +1,5 @@
 # QuickPath
+
 It's pretty similar to the AHK v1 QuickSwitch. I had suggested similar functionality to the QAP developer last year, and user Horst referred me to QuickSwitch, posted by NotNull, at the voidtools (Everything) forums. More recently I noticed the AutoHotkey forum post by Eureka. Also, the associated GitHub repo is by user gepruts. Presumably all three are the same person.
 
 It's a great little utility and I've been using it steadily for the last year and a half. I wanted an AHK v2 version of it. I attempted to convert the v1 to v2 but was unsuccessful.
@@ -12,7 +13,7 @@ QuickPath has a minimal interface. When a Windows 'Open' or 'Save as' type of di
 ![Screenshot of QuickPath popup menu](https://github.com/kunkel321/QuickPath/blob/main/QuickPath%20screenshot.png)
 
 Tips:
--There is a 2 second timeout, and QuickPath will stop popping-up after this time. So if you want to see it again, press Alt + q.
--Right-click the SysTray icon to set QuickPath to run at Windows start up. There is a checkbox item at the bottom of the R-Click menu.
+* There is a 2 second timeout, and QuickPath will stop popping-up after this time. So if you want to see it again, press Alt + q.
+* Right-click the SysTray icon to set QuickPath to run at Windows start up. There is a checkbox item at the bottom of the R-Click menu.
 
 AutoHotkey Forum Thread: https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
