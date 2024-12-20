@@ -8,7 +8,7 @@ Recently, william_ahk's v2 QuickerAccess, and CyberKlabauter's enthusiastic evol
 
 Currently, only Win Explorer and Directory Opus file managers are supported. I don't have Win 11, so I can't test it.
 
-QuickPath has a minimal interface. When a Windows 'Open' or 'Save as' type of dialog is opened, whatever (in any) folders are open will by listed in a popup menu. Click a menu item to quickly use that folder as the location in the the Windows dialog. Active DOpus tabs are marked with a little blue arrow icon.
+QuickPath has a minimal interface. When a Windows 'Open' or 'Save as' type of dialog is opened, whatever (if any) folders are open will by listed in a popup menu. Click a menu item to quickly use that folder as the location in the the Windows dialog. Active DOpus tabs are marked with a little blue arrow icon.
 
 ![Screenshot of QuickPath popup menu](https://github.com/kunkel321/QuickPath/blob/main/QuickPath%20screenshot.png)
 
