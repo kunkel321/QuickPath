@@ -3,7 +3,7 @@
 
 ;===============================================================================
 ; Title:    QuickPath.  
-; Version:  12-18-2024
+; Version:  12-20-2024
 ; Made by:  kunkel321. 
 ; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog 
 ; is opened, whatever (in any) folders are open in DirectoryOpus, or Windows 10
@@ -40,7 +40,6 @@ StartUpQP(*)
     Reload()
 }
 
-
 class QuickPath {
     static hActvWnd := ""  ; Handle to previously active window
     static Enabled := true  ; Flag to control whether the menu should appear
@@ -56,27 +55,6 @@ class QuickPath {
     static __New() {
         ; Monitor for #32770 class windows (file dialogs)
         SetTimer () => this.CheckForFileDialog(), 100
-    }
-
-    ; Array of recognized file dialog titles - add new ones as needed
-    static fileDialogs := [
-        "Save As",
-        "Open",
-        "Save Attachment",
-        "Save All Attachments"
-    ]
-    
-    static IsFileDialog(hwnd) { ; Verify if window is actually a file dialog
-        if WinGetProcessName("ahk_id " hwnd) = "cmd.exe" ; Skip command prompt windows
-            return false
-            
-        ; Check if window title matches any known dialog types
-        winTitle := WinGetTitle("ahk_id " hwnd)
-        for dialogTitle in this.fileDialogs {
-            if (winTitle = dialogTitle)
-                return true
-        }
-        return false
     }
 
     ; Check for Open/Save dialogs and handle them
@@ -144,26 +122,44 @@ class QuickPath {
         }
     }
 
-    ; ; Array of recognized file dialog titles - add new ones as needed
-    ; static fileDialogs := [
-    ;     "Save As",
-    ;     "Open",
-    ;     "Save Attachment",
-    ;     "Save All Attachments"
-    ; ]
-    
-    ; static IsFileDialog(hwnd) { ; Verify if window is actually a file dialog
-    ;     if WinGetProcessName("ahk_id " hwnd) = "cmd.exe" ; Skip command prompt windows
-    ;         return false
+    static IsFileDialog(hwnd) { ; Verify if window is actually a file dialog
+        if WinGetProcessName("ahk_id " hwnd) = "cmd.exe" ; Skip command prompt windows
+            return false
             
-    ;     ; Check if window title matches any known dialog types
-    ;     winTitle := WinGetTitle("ahk_id " hwnd)
-    ;     for dialogTitle in this.fileDialogs {
-    ;         if (winTitle = dialogTitle)
-    ;             return true
-    ;     }
-    ;     return false
-    ; }
+        ; Initialize control detection flags
+        _SysListView321 := 0
+        _ToolbarWindow321 := 0
+        _DirectUIHWND1 := 0
+        _Edit1 := 0
+        
+        ; Get control list using hwnd method
+        try {
+            _controlList := WinGetControlsHwnd("ahk_id " hwnd)
+        } catch Error as e {
+            return false
+        }
+        
+        ; Check each control's class
+        for ctrlHwnd in _controlList {
+            _controlClass := WinGetClass("ahk_id " ctrlHwnd)
+            
+            ; Use switch for cleaner control class checking
+            switch _controlClass {
+                case "SysListView32":
+                    _SysListView321 := 1
+                case "ToolbarWindow32":
+                    _ToolbarWindow321 := 1
+                case "DirectUIHWND":
+                    _DirectUIHWND1 := 1
+                case "Edit":
+                    _Edit1 := 1
+            }
+        }
+        
+        ; Return true for either type of file dialog
+        return (_DirectUIHWND1 && _ToolbarWindow321 && _Edit1) 
+            || (_SysListView321 && _ToolbarWindow321 && _Edit1)
+    }
 
     static GetOpenPaths() {  ; Get all open folder paths
         paths := []
@@ -277,31 +273,6 @@ class QuickPath {
             }
         }
     }
-
-
-    ; static ShowPathsMenu() { ; Show paths in a menu
-    ;     if !this.pathsCache.Length {
-    ;         return
-    ;     }
-    ;     folderMenu := Menu()
-    ;     for path in this.pathsCache {
-    ;         ; Check if this path is in an active tab
-    ;         if this.activeTabsCache.Has(path) {
-    ;             ; Use shell32.dll icon for active tabs
-    ;             folderMenu.Add(path, this.MenuHandler.Bind(this)) 
-    ;             try {
-    ;                 folderMenu.SetIcon(path, "shell32.dll", 138)
-    ;             }
-    ;         } 
-    ;         else {
-    ;             folderMenu.Add(path, this.MenuHandler.Bind(this))
-    ;         }
-    ;     }
-    ;     folderMenu.Add()
-    ;     folderMenu.Add("Cancel -- Alt+Q will re-show menu", (*) => {})
-    ;     CoordMode "Menu", "Window"
-    ;     folderMenu.Show(140, 81) ; <--------- Location of popup is defined here.  Relative to dialog window. 
-    ; }
 
     static MenuHandler(ItemName, ItemPos, MyMenu) { ; Handle menu selection
         this.SetDialogPath(ItemName)
