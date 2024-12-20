@@ -2,19 +2,12 @@
 #SingleInstance Force
 
 ;===============================================================================
-; Title:    QuickPath.  
-; Version:  12-20-2024
-; Made by:  kunkel321. 
-; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog 
-; is opened, whatever (in any) folders are open in DirectoryOpus, or Windows 10
-; Explorer, will by listed in a popup menu.  Click a menu item to quickly add 
-; that folder to the Windows dialog. Active DOpus tabs are marked with an icon.
-;===============================================================================
-; QuickPath was inspired by the AHK v1 app, QuickSwitch by NoNull, which has the 
-; same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881
-; Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.
-; https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid
-; Claude AI was used extensively, though hours of human input was needed.
+; Title:        QuickPath
+; Version:      12-20-2024
+; Made by:      kunkel321
+; AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
+; GitHub repo:  https://github.com/kunkel321/QuickPath
+; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog is opened, whatever (if any) folders are open in DirectoryOpus, or Windows 10 Explorer, will by listed in a popup menu.  Click a menu item to quickly add that folder to the Windows dialog. Active DOpus tabs are marked with an icon.  QuickPath was inspired by the AHK v1 app, QuickSwitch by NotNull, which has the  same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881 Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.  https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid Claude AI was used extensively, though hours of human input was needed.
 ;===============================================================================
 
 TraySetIcon("shell32.dll","283") ; Icon of a little rectangle like a menu.
@@ -28,13 +21,13 @@ if FileExist(A_Startup "\" appName ".lnk")
     qpMenu.Check("Start with Windows")
 ; This function is only accessed via the systray menu item.  It toggles adding/removing
 ; link to this script in Windows Start up folder.  Applies custom icon too.
-StartUpQP(*)
-{	if FileExist(A_Startup "\" appName ".lnk")
-	{	FileDelete(A_Startup "\" appName ".lnk")
+StartUpQP(*) {	
+    if FileExist(A_Startup "\" appName ".lnk") {
+        FileDelete(A_Startup "\" appName ".lnk")
 		MsgBox("" appName " will NO LONGER auto start with Windows.",, 4096)
 	}
-	Else 
-	{	FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk", A_WorkingDir, "", "", "shell32.dll", "", "283")
+	Else {
+        FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk", A_WorkingDir, "", "", "shell32.dll", "", "283")
 		MsgBox("" appName " will now auto start with Windows.",, 4096)
 	}
     Reload()
