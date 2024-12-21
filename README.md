@@ -10,6 +10,8 @@ Currently, only Win Explorer and Directory Opus file managers are supported. I d
 
 QuickPath has a minimal interface. When a Windows 'Open' or 'Save as' type of dialog is opened, whatever (if any) folders are open will by listed in a popup menu. Click a menu item to quickly use that folder as the location in the the Windows dialog. Active DOpus tabs are marked with a little blue arrow icon.
 
+PLEASE NOTE that the above QuickPath.exe is not a compiled verson of the QuickPath.ahk file.  Rather, it is just a copy of AutoHotkey64.exe that has been renamed.  So the .ahk and the .exe must stay in the same folder. 
+
 ![Screenshot of QuickPath popup menu](https://github.com/kunkel321/QuickPath/blob/main/QuickPath%20screenshot.png)
 
 Tips:
