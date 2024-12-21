@@ -14,20 +14,26 @@ TraySetIcon("shell32.dll","283") ; Icon of a little rectangle like a menu.
 ; If icon is changed, change below in FileCreateShortcut() too.
 ; Tip: Right-click SysTray icon to choose "Start with Windows."
 
-appName := "QuickPath" ; Name it something else, if you want to.
+appName := StrReplace(A_ScriptName, ".ahk") ; Assign the name of this file as "appName".
 qpMenu := A_TrayMenu ; Tray Menu.
+qpMenu.Delete ; Remove standard, so that app name will be at the top. 
+qpMenu.Add(appName, (*) => False) ; Shows name of app at top of menu.
+qpMenu.Add() ; Separator.
+qpMenu.AddStandard  ; Put the standard menu items back. 
+qpMenu.Add() ; Separator.
 qpMenu.Add("Start with Windows", (*) => StartUpQP()) ; Add menu item at the bottom.
 if FileExist(A_Startup "\" appName ".lnk")
     qpMenu.Check("Start with Windows")
 ; This function is only accessed via the systray menu item.  It toggles adding/removing
 ; link to this script in Windows Start up folder.  Applies custom icon too.
+qpMenu.Default := appName
 StartUpQP(*) {	
     if FileExist(A_Startup "\" appName ".lnk") {
         FileDelete(A_Startup "\" appName ".lnk")
 		MsgBox("" appName " will NO LONGER auto start with Windows.",, 4096)
-	}
-	Else {
-        FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk", A_WorkingDir, "", "", "shell32.dll", "", "283")
+	} Else {
+        FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk"
+        , A_WorkingDir, "", "", "shell32.dll", "", "283") ; Change icon if needed.
 		MsgBox("" appName " will now auto start with Windows.",, 4096)
 	}
     Reload()
@@ -253,7 +259,7 @@ class QuickPath {
         }
         
         folderMenu.Add()
-        folderMenu.Add("Cancel -- Alt+Q will re-show menu", (*) => {})
+        folderMenu.Add("Cancel " appName " -- Alt+Q will re-show menu", (*) => {})
         
         ; Double check window is still active before showing menu
         if WinActive("ahk_id " this.hActvWnd) {
