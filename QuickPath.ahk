@@ -3,11 +3,11 @@
 
 ;===============================================================================
 ; Title:        QuickPath
-; Version:      12-20-2024
+; Version:      12-21-2024
 ; Made by:      kunkel321
 ; AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
 ; GitHub repo:  https://github.com/kunkel321/QuickPath
-; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog is opened, whatever (if any) folders are open in DirectoryOpus, or Windows 10 Explorer, will by listed in a popup menu.  Click a menu item to quickly add that folder to the Windows dialog. Active DOpus tabs are marked with an icon.  QuickPath was inspired by the AHK v1 app, QuickSwitch by NotNull, which has the  same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881 Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.  https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid Claude AI was used extensively, though hours of human input was needed.
+; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog is opened, whatever (if any) folders are open in DirectoryOpus, or Windows 10 Explorer, will by listed in a popup menu.  Click a menu item to quickly add that folder to the Windows dialog. Active DOpus tabs are marked with an icon.  QuickPath was inspired by the AHK v1 app, QuickSwitch by NotNull, which has the  same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881 Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.  https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid Claude AI was used extensively, though hours of human input was needed.  An important update from WKen made the cmd window flicker go away. :)
 ;===============================================================================
 
 TraySetIcon("shell32.dll","283") ; Icon of a little rectangle like a menu.
@@ -176,9 +176,7 @@ class QuickPath {
         dopusPath := A_ProgramFiles '\GPSoftware\Directory Opus\dopusrt.exe'
         withSwitch := '"' dopusPath '" /info ' tempFile ',paths'
         try {
-            shell := ComObject("WScript.Shell")
-            exec := shell.Exec(A_ComSpec " /c " withSwitch " 2>&1")
-            exec.StdOut.ReadAll() 
+            runWait(A_ComSpec " /c " withSwitch,,"Hide") ; <--- thanks WKen !!!
             if FileExist(tempFile) && FileGetSize(tempFile) > 0 {
                 xmlContent := FileRead(tempFile)
                 FileDelete(tempFile)
