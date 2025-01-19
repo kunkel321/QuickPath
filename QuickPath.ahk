@@ -3,7 +3,7 @@
 
 ;===============================================================================
 ; Title:        QuickPath
-; Version:      12-21-2024
+; Version:      1-19-2025
 ; Made by:      kunkel321
 ; AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
 ; GitHub repo:  https://github.com/kunkel321/QuickPath
@@ -40,6 +40,8 @@ StartUpQP(*) {
 }
 
 class QuickPath {
+    static UserHotKey := "!q" ; Set custom hotkey here (only)
+    static UserDopusPath := "\GPSoftware\Directory Opus\" ; DOpus path with \backSlashes\
     static hActvWnd := ""  ; Handle to previously active window
     static Enabled := true  ; Flag to control whether the menu should appear
     static dialogCheckTimer := ""
@@ -64,7 +66,7 @@ class QuickPath {
             dialogActive := this.IsFileDialog(hwnd)
             if dialogActive {
                 if !this.hotkeyBound { ; Ensure hotkey is bound when dialog is active
-                    Hotkey "!q", (*) => this.HotkeyHandler(), "On"
+                    Hotkey this.UserHotKey, (*) => this.HotkeyHandler(), "On"
                     this.hotkeyBound := true
                 }
                 if (hwnd = this.lastDialogHwnd) ; Skip if we've already checked this dialog
@@ -79,7 +81,7 @@ class QuickPath {
             }
         }
         if !dialogActive && this.hotkeyBound { ; Disable hotkey if no dialog is active
-            Hotkey "!q", "Off"
+            Hotkey this.UserHotKey, "Off"
             this.hotkeyBound := false
         }
     }
@@ -179,7 +181,7 @@ class QuickPath {
         this.activeTabsCache.Clear()  ; Clear the active tabs cache
         if FileExist(tempFile)
             FileDelete(tempFile)
-        dopusPath := A_ProgramFiles '\GPSoftware\Directory Opus\dopusrt.exe'
+        dopusPath := A_ProgramFiles this.UserDopusPath 'dopusrt.exe'
         withSwitch := '"' dopusPath '" /info ' tempFile ',paths'
         try {
             runWait(A_ComSpec " /c " withSwitch,,"Hide") ; <--- thanks WKen !!!
@@ -259,7 +261,13 @@ class QuickPath {
         }
         
         folderMenu.Add()
-        folderMenu.Add("Cancel " appName " -- Alt+Q will re-show menu", (*) => {})
+        ; Convert custom hotkey to human-friendly format for display in menu. 
+        hkVerbose :=  (inStr(this.UserHotKey, "^")?"Ctrl+":"") 
+            . (inStr(this.UserHotKey, "+")?"Shift+":"") 
+            . (inStr(this.UserHotKey, "!")?"Alt+":"") 
+            . (inStr(this.UserHotKey, "#")?"Win+":"") 
+            . (StrUpper(SubStr(this.UserHotKey, -1)))
+        folderMenu.Add("Cancel " appName " -- " hkVerbose " will re-show menu", (*) => {})
         
         ; Double check window is still active before showing menu
         if WinActive("ahk_id " this.hActvWnd) {
