@@ -3,7 +3,7 @@
 
 ;===============================================================================
 ; Title:        QuickPath
-; Version:      1-19-2025
+; Version:      5-20-2025 
 ; Made by:      kunkel321
 ; AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
 ; GitHub repo:  https://github.com/kunkel321/QuickPath
@@ -219,6 +219,8 @@ class QuickPath {
                     path := StrReplace(path, "&amp;", "&")
                     path := StrReplace(path, "&lt;", "<")
                     path := StrReplace(path, "&gt;", ">")
+                    path := StrReplace(path, "&apos;", "'")
+                    path := StrReplace(path, "&quot;", '"')
                     
                     ; Check if this is an active tab
                     if RegExMatch(A_LoopField, "active_tab=`"(\d)`"", &tabMatch)
