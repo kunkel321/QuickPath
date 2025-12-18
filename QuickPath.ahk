@@ -1,43 +1,16 @@
 ﻿#Requires AutoHotkey v2.0
 #SingleInstance Force
 
+/*
+===============================================================================
+Title:        QuickPath
+Version:      12-17-2025 
+Made by:      kunkel321
+AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
+GitHub repo:  https://github.com/kunkel321/QuickPath
+QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog is opened, whatever (if any) folders are open in XYplorer, DirectoryOpus, or Windows 10 Explorer, will be listed in a popup menu.  Click a menu item to quickly add that folder to the Windows dialog. Active DOpus or Xyplorer tabs are marked with a blue arrow icon.  QuickPath was inspired by the AHK v1 app, QuickSwitch by NotNull, which has the  same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881 Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.  https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid The XYplorer parts are based on FileManRedirect by WKen https://www.autohotkey.com/boards/viewtopic.php?f=83&t=135693  Claude AI was used extensively, though hours of human input was needed.  An additional important update from WKen made the cmd window flicker go away. :)   QuickPath has not been tested on Win 11.
 ;===============================================================================
-; Title:        QuickPath
-; Version:      5-20-2025 
-; Made by:      kunkel321
-; AHK forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134987
-; GitHub repo:  https://github.com/kunkel321/QuickPath
-; QuickPath has a minimal interface.  When a Windows 'Open' or 'Save as' dialog is opened, whatever (if any) folders are open in DirectoryOpus, or Windows 10 Explorer, will by listed in a popup menu.  Click a menu item to quickly add that folder to the Windows dialog. Active DOpus tabs are marked with an icon.  QuickPath was inspired by the AHK v1 app, QuickSwitch by NotNull, which has the  same functionality. https://www.voidtools.com/forum/viewtopic.php?f=2&t=9881 Some of the code came from the AHK v2 app, QuickerAccess by william_ahk.  https://www.autohotkey.com/boards/viewtopic.php?f=83&t=134379&sid Claude AI was used extensively, though hours of human input was needed.  An important update from WKen made the cmd window flicker go away. :)
-;===============================================================================
-
-TraySetIcon("shell32.dll","283") ; Icon of a little rectangle like a menu.
-; If icon is changed, change below in FileCreateShortcut() too.
-; Tip: Right-click SysTray icon to choose "Start with Windows."
-
-appName := StrReplace(A_ScriptName, ".ahk") ; Assign the name of this file as "appName".
-qpMenu := A_TrayMenu ; Tray Menu.
-qpMenu.Delete ; Remove standard, so that app name will be at the top. 
-qpMenu.Add(appName, (*) => False) ; Shows name of app at top of menu.
-qpMenu.Add() ; Separator.
-qpMenu.AddStandard  ; Put the standard menu items back. 
-qpMenu.Add() ; Separator.
-qpMenu.Add("Start with Windows", (*) => StartUpQP()) ; Add menu item at the bottom.
-if FileExist(A_Startup "\" appName ".lnk")
-    qpMenu.Check("Start with Windows")
-; This function is only accessed via the systray menu item.  It toggles adding/removing
-; link to this script in Windows Start up folder.  Applies custom icon too.
-qpMenu.Default := appName
-StartUpQP(*) {	
-    if FileExist(A_Startup "\" appName ".lnk") {
-        FileDelete(A_Startup "\" appName ".lnk")
-		MsgBox("" appName " will NO LONGER auto start with Windows.",, 4096)
-	} Else {
-        FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk"
-        , A_WorkingDir, "", "", "shell32.dll", "", "283") ; Change icon if needed.
-		MsgBox("" appName " will now auto start with Windows.",, 4096)
-	}
-    Reload()
-}
+*/
 
 class QuickPath {
     static UserHotKey := "!q" ; Set custom hotkey here (only)
@@ -47,6 +20,8 @@ class QuickPath {
     static dialogCheckTimer := ""
     static lastCheckTime := 0  ; Time of last folder check
     static checkTimeout := 2000  ; Time to wait before checking again (2 seconds)
+    static XYplorerMaxTabLoops := 5  ; Max number of tabs to check per pane in XYplorer (recommend setting to 2-5)
+    static XYplorerClipWaitTimeout := 0.25  ; ClipWait timeout in seconds (0.2-0.5 recommended, too low = missing paths)
     static pathsCache := []  ; Cache for found paths
     static activeTabsCache := Map()  ; New: Store which paths are in active tabs
     static lastDialogHwnd := 0  ; Last dialog window we checked
@@ -169,6 +144,11 @@ class QuickPath {
             for path in dopusPaths
                 paths.Push(path)
         }
+        if ProcessExist("XY64.exe") || ProcessExist("XYplorer.exe") { ; Get XYplorer paths
+            xyPaths := this.GetXYplorerPaths()
+            for path in xyPaths
+                paths.Push(path)
+        }
         explorerPaths := this.GetExplorerPaths() ; Get Explorer paths
         for path in explorerPaths
             paths.Push(path)
@@ -182,6 +162,7 @@ class QuickPath {
         if FileExist(tempFile)
             FileDelete(tempFile)
         dopusPath := A_ProgramFiles this.UserDopusPath 'dopusrt.exe'
+        ; Note: temp file path must NOT be quoted in the /info parameter
         withSwitch := '"' dopusPath '" /info ' tempFile ',paths'
         try {
             runWait(A_ComSpec " /c " withSwitch,,"Hide") ; <--- thanks WKen !!!
@@ -196,18 +177,133 @@ class QuickPath {
 
     static GetExplorerPaths() { ; Get paths from Windows Explorer
         paths := []
-        windows := ComObject("Shell.Application").Windows
-        for window in windows {
-            try {
-                if window.Name = "File Explorer" {
-                    path := window.Document.Folder.Self.Path
-                    if RegExMatch(path, "^::\{") ; Skip special shell folders
-                        continue
-                    paths.Push(path)
+        try {
+            windows := ComObject("Shell.Application").Windows
+            for window in windows {
+                try {
+                    if window.Name = "File Explorer" {
+                        path := window.Document.Folder.Self.Path
+                        if RegExMatch(path, "^::\{") ; Skip special shell folders
+                            continue
+                        paths.Push(path)
+                    }
+                }
+                catch {
+                    ; Skip windows that cause errors
+                    continue
                 }
             }
         }
+        catch {
+            ; If Shell.Application fails, return empty
+        }
         return paths
+    }
+
+    static QueryXYplorerPath(xyHwnd, message) { ; Query XYplorer and get clipboard result
+        try {
+            savedClip := A_Clipboard
+            A_Clipboard := ""
+            
+            ; Send the message
+            this.SendXYplorerMessage(xyHwnd, message)
+            
+            ; Wait for response with configurable timeout
+            if ClipWait(this.XYplorerClipWaitTimeout) {
+                result := A_Clipboard
+                A_Clipboard := savedClip
+                return Trim(result)
+            }
+            
+            A_Clipboard := savedClip
+            return ""
+        }
+        catch as e {
+            return ""
+        }
+    }
+
+    static GetXYplorerPaths() { ; Get paths from XYplorer using WM_COPYDATA messaging
+        paths := []
+        
+        ; Find all XYplorer windows
+        hwndList := WinGetList("ahk_class ThunderRT6FormDC")
+        
+        if hwndList.Length = 0
+            return paths
+        
+        loop hwndList.Length {
+            xyHwnd := hwndList[A_Index]
+            
+            ; Get the currently active path (this is the active tab)
+            activePath := this.QueryXYplorerPath(xyHwnd, "::copytext get('path', a);")
+            if activePath && !this.PathInList(paths, activePath) {
+                paths.Push(activePath)
+                ; Mark this as active (it's the currently displayed path in active pane)
+                this.activeTabsCache[activePath] := "1"
+            }
+            
+            ; Get inactive pane path (if different)
+            inactivePath := this.QueryXYplorerPath(xyHwnd, "::copytext get('path', i);")
+            if inactivePath && !this.PathInList(paths, inactivePath) {
+                paths.Push(inactivePath)
+                ; Mark if this pane is the active one (it shouldn't be, but mark anyway for consistency)
+                this.activeTabsCache[inactivePath] := "0"
+            }
+            
+            ; Get other tabs from active pane - these are not the current active tab
+            loop this.XYplorerMaxTabLoops {
+                tabPath := this.QueryXYplorerPath(xyHwnd, "::copytext gettoken(get('Tabs_sf', '|', 'a'), " A_Index ", '|');")
+                if !tabPath  ; Stop if no result
+                    break
+                if !this.PathInList(paths, tabPath) {
+                    paths.Push(tabPath)
+                    ; These tabs exist but are not the active tab
+                    this.activeTabsCache[tabPath] := "0"
+                }
+            }
+            
+            ; Get tabs from inactive pane
+            loop this.XYplorerMaxTabLoops {
+                tabPath := this.QueryXYplorerPath(xyHwnd, "::copytext gettoken(get('Tabs_sf', '|', 'i'), " A_Index ", '|');")
+                if !tabPath  ; Stop if no result
+                    break
+                if !this.PathInList(paths, tabPath) {
+                    paths.Push(tabPath)
+                    ; Tabs in inactive pane are definitely not active
+                    this.activeTabsCache[tabPath] := "0"
+                }
+            }
+        }
+        
+        return paths
+    }
+
+    static PathInList(pathList, pathToCheck) { ; Helper function to check if path already exists
+        for existing in pathList {
+            if (existing = pathToCheck)
+                return true
+        }
+        return false
+    }
+
+    static SendXYplorerMessage(xyHwnd, message) { ; Send WM_COPYDATA message to XYplorer
+        ; Based on File_Managers_Redirection script approach
+        try {
+            size := StrLen(message)
+            
+            ; Create COPYDATA structure
+            COPYDATA := Buffer(A_PtrSize * 3)
+            NumPut("Ptr", 4194305, COPYDATA, 0)              ; dwData - XYplorer magic number
+            NumPut("UInt", size * 2, COPYDATA, A_PtrSize)    ; cbData - size in bytes
+            NumPut("Ptr", StrPtr(message), COPYDATA, A_PtrSize * 2)  ; lpData - use StrPtr directly!
+            
+            ; Send using SendMessageTimeout for better reliability
+            DllCall("User32.dll\SendMessageTimeout", "Ptr", xyHwnd, "UInt", 74, "Ptr", 0, "Ptr", COPYDATA, "UInt", 2, "UInt", 3000, "PtrP", Result:=0, "Ptr")
+        }
+        catch as e {
+            ; Silently fail
+        }
     }
 
     static ParsePathsXML(xmlContent) { ; Parse XML from DOpus output
@@ -252,13 +348,16 @@ class QuickPath {
         folderMenu := Menu()
         
         for path in this.pathsCache {
-            if this.activeTabsCache.Has(path) {
-                folderMenu.Add(path, this.MenuHandler.Bind(this))
+            ; Check if this path is marked as active
+            ; For DOpus: active_tab has a value ("1" or "2" for which pane)
+            ; For XYplorer: we store "1" for active, "0" for inactive
+            isActive := this.activeTabsCache.Has(path) && (this.activeTabsCache[path] != "" && this.activeTabsCache[path] != "0")
+            
+            folderMenu.Add(path, this.MenuHandler.Bind(this))
+            if isActive {
                 try {
-                    folderMenu.SetIcon(path, "shell32.dll", 138)
+                    folderMenu.SetIcon(path, "shell32.dll", 138)  ; Blue arrow icon
                 }
-            } else {
-                folderMenu.Add(path, this.MenuHandler.Bind(this))
             }
         }
         
@@ -300,6 +399,35 @@ class QuickPath {
         Sleep 50
         ControlFocus "Edit1", this.hActvWnd
     }
+}
+
+TraySetIcon("shell32.dll","283") ; Icon of a little rectangle like a menu.
+; If icon is changed, change below in FileCreateShortcut() too.
+; Tip: Right-click SysTray icon to choose "Start with Windows."
+
+appName := StrReplace(A_ScriptName, ".ahk") ; Assign the name of this file as "appName".
+qpMenu := A_TrayMenu ; Tray Menu.
+qpMenu.Delete ; Remove standard, so that app name will be at the top. 
+qpMenu.Add(appName, (*) => False) ; Shows name of app at top of menu.
+qpMenu.Add() ; Separator.
+qpMenu.AddStandard  ; Put the standard menu items back. 
+qpMenu.Add() ; Separator.
+qpMenu.Add("Start with Windows", (*) => StartUpQP()) ; Add menu item at the bottom.
+if FileExist(A_Startup "\" appName ".lnk")
+    qpMenu.Check("Start with Windows")
+; This function is only accessed via the systray menu item.  It toggles adding/removing
+; link to this script in Windows Start up folder.  Applies custom icon too.
+qpMenu.Default := appName
+StartUpQP(*) {	
+    if FileExist(A_Startup "\" appName ".lnk") {
+        FileDelete(A_Startup "\" appName ".lnk")
+		MsgBox("" appName " will NO LONGER auto start with Windows.",, 4096)
+	} Else {
+        FileCreateShortcut(A_WorkingDir "\" appName ".exe", A_Startup "\" appName ".lnk"
+        , A_WorkingDir, "", "", "shell32.dll", "", "283") ; Change icon if needed.
+		MsgBox("" appName " will now auto start with Windows.",, 4096)
+	}
+    Reload()
 }
 
 QuickPath() ; Create instance
